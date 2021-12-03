@@ -1,5 +1,7 @@
 #!/usr/env/python3
 
+from DataListing import xsdir
+
 class MaterialData():
 
     """ Collection of useful material data for exploding
@@ -3816,3 +3818,11 @@ class ThermalScattering():
                       "Y_in_YH2":        "c_Y_in_YH2",
                       "Zr_in_ZrH":       "c_Zr_in_ZrH"}
         }
+
+class MCNPXsdir():
+    def __init__(self):
+
+        AWRs, entries = xsdir.readXSDIR()
+        self.entries = entries
+
+MCNP_XSDATA = MCNPXsdir()

@@ -1,7 +1,7 @@
 #!/usr/env/python3
 
 from csg2csg.MaterialCard import MaterialCard
-from csg2csg.MaterialData import ThermalScattering
+from csg2csg.MaterialData import ThermalScattering, MCNP_XSDATA
 from csg2csg.MCNPFormatter import get_fortran_formatted_number
 
 import sys
@@ -33,6 +33,8 @@ class MCNPMaterialCard(MaterialCard):
         # need to reset the dictionary
         # otherwise state seems to linger - weird
         self.composition_dictionary = {}
+        self.xsid_dictionary = {}
+        self.xsid_temperature = {}
 
         mat_string = self.text_string
         mat_string = mat_string.replace("\n","")
@@ -68,6 +70,20 @@ class MCNPMaterialCard(MaterialCard):
             else:
                 self.composition_dictionary[nucid] = frac
             self.xsid_dictionary[nucid] = xsid
+
+            # lookup zaid and suffix, find temperature, default to 293.6 if not found
+            xs_temp = MCNP_XSDATA.entries[MCNP_XSDATA.entries["ZAID"] == nucid + "." + xsid]["T(K)"]
+            if len(xs_temp) == 0:
+                print("Warning: Could not find {} in xsdir file".format(nucid + "." + xsid))
+                self.xsid_temperature[nucid] = 293.6
+            else:
+                self.xsid_temperature[nucid] = xs_temp.values[0]
+
+        # calculate weighted temperature
+        ave_temp = (sum([self.xsid_temperature[nucid]*float(self.composition_dictionary[nucid]) for nucid in self.xsid_temperature]) /
+                    sum(list(map(float,self.composition_dictionary.values()))))
+        self.temperature = ave_temp
+
         return
 
 

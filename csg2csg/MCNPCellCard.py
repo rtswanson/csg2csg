@@ -337,6 +337,7 @@ class MCNPCellCard(CellCard):
         string = string.replace("(", " ( ")
         string = string.replace(")", " ) ")
         string = string.replace(":", " : ")
+        string = string.replace("#", " # ")
         string = string.replace("+","") # purge + signs
 
         # there can be mulitple comments per cell you sick sick people

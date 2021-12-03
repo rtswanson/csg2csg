@@ -1,5 +1,6 @@
 #/usr/env/python3
 
+from csg2csg.CellCard import CellCard
 from csg2csg.Input import InputDeck #, get_surface_with_id
 from csg2csg.SurfaceCard import SurfaceCard #, BoundaryCondition
 from csg2csg.ParticleNames import particleToGeneric, ParticleNames
@@ -1009,6 +1010,37 @@ class MCNPInput(InputDeck):
             
             lattice.pitch = [pitch, height]
             lattice.orientation = orientation
+
+    # update cells
+    def __update_cells(self):
+        """
+        Update cell definitions. For instance, OpenMC does not support
+        the complement of a cell, so all complements should be subsituted
+        for their regions
+        """
+        # loop through all cells
+        for cell in self.cell_list:
+            # see if it's a complement
+            if CellCard.OperationType["NOT"] in cell.cell_interpreted:
+                # get all complement occurences, if there is more than one
+                complement_indicies = [i for i, x in enumerate(cell.cell_text_description) if x == "#"]
+
+                # work backwards (as indicies could change)
+                for idx in complement_indicies[::-1]:
+                    # check if a complement of surfaces
+                    if cell.cell_text_description[idx+1] == "(":
+                        pass # surfaces
+                    else:
+                        # get cell id, get and make new region definition
+                        complement_cell = [c for c in self.cell_list if str(c.cell_id) == cell.cell_text_description[idx+1]][0]
+                        new_text_description = ["("] + complement_cell.cell_text_description + [")"]
+                        
+                        # back substitute
+                        cell.cell_text_description = cell.cell_text_description[:idx+1] + new_text_description + cell.cell_text_description[idx+2:]
+
+                        # generalise due to definition change
+                        cell.generalise()
+
     # process the mcnp input deck and read into a generic datastructure
     # that we can translate to other formats
     def process(self):
