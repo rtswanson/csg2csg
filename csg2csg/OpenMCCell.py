@@ -111,28 +111,32 @@ def get_openmc_cell_info(cell):
     else:
         translation = "0 0 0"
 
-    return (cell_id, material_number, operation,universe,fill,rotation,translation)
+    return (cell_id, material_number, operation,universe,fill,rotation,translation, cell.cell_volume, cell.cell_temperature)
     
     
 def write_openmc_cell(cell, geometry_tree):
 
     (cell_id, material_number, description,
-    universe,fill,rotation,translation) = get_openmc_cell_info(cell)
+    universe,fill,rotation,translation, volume, temperature) = get_openmc_cell_info(cell)
     
     if fill != 0:
-        ET.SubElement(geometry_tree, "cell", id = str(cell_id),
+        ele = ET.SubElement(geometry_tree, "cell", id = str(cell_id),
                       region = str(description),
                       universe = str(universe),
                       fill = str(fill),
                       rotation = str(rotation),
                       translation = str(translation))
     else:
-        ET.SubElement(geometry_tree, "cell", id = str(cell_id),
+        ele = ET.SubElement(geometry_tree, "cell", id = str(cell_id),
                       material=str(material_number),
                       region = str(description),
                       universe = str(universe))
 
+        if temperature is not None:
+            ele.attrib["temperature"] = str(temperature)
 
+    if volume is not None:
+        ele.attrib["volume"] = str(volume)
 
 
 #

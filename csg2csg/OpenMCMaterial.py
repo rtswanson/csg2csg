@@ -1,6 +1,7 @@
 #!/usr/env/python3
 
 from csg2csg.MaterialCard import MaterialCard
+from csg2csg.MaterialData import ThermalScattering
 import xml.etree.ElementTree as ET
 
 name_zaid = {1:"H",2:"He",3:"Li",4:"Be",5:"B",6:"C",7:"N",
@@ -51,19 +52,35 @@ def __write_mass_fraction(material, nuclide, mass_frac):
     ET.SubElement(material, "nuclide", name = nuclide, wo = str(abs(mass_frac)))
     return
 
+# write the thermal scattering
+def __write_thermal_scattering(material, sab_library):
+    ET.SubElement(material, "sab", name = sab_library)
+    return
+
 # generate the information required to write the
 # material xml element
 def write_openmc_material(MaterialCard, material_tree):
     matid = str(MaterialCard.material_number)
     matname = str(MaterialCard.material_name)
     density = str(abs(MaterialCard.density))
+    temperature = MaterialCard.temperature
     if MaterialCard.density < 0:
         density_units = "g/cc"
     else:
         density_units = "atom/b-cm"
     
+    # skip materials with density of 0
+    if density == "0":
+        return
+    
     material = ET.SubElement(material_tree, "material", id = matid, name = matname)
-    ET.SubElement(material, "density", value = density, units = density_units)
+
+    if temperature is not None:
+        material.attrib["temperature"] = str(temperature)
+
+    if density != "None":
+        ET.SubElement(material, "density", value = density, units = density_units)
+
     for nuclide in MaterialCard.composition_dictionary:
         mass_frac = MaterialCard.composition_dictionary[nuclide]
         nuclide_name = zaid_to_name(nuclide)
@@ -72,7 +89,10 @@ def write_openmc_material(MaterialCard, material_tree):
         else:
             __write_atomic_fraction(material, nuclide_name, mass_frac)
 
-    
+    sab = ThermalScattering()
+    for thermal_scattering in MaterialCard.thermal_scattering:
+        sab_library = sab.specialize["openmc"][thermal_scattering]
+        __write_thermal_scattering(material, sab_library)
 
     
     

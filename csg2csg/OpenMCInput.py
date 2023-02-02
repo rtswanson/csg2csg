@@ -9,6 +9,7 @@ import xml.etree.ElementTree as ET
 from csg2csg.OpenMCSurface import write_openmc_surface
 from csg2csg.OpenMCCell import write_openmc_cell
 from csg2csg.OpenMCMaterial import write_openmc_material
+from csg2csg.OpenMCLattice import write_openmc_lattice
 '''
 copy and paste from http://effbot.org/zone/element-lib.htm#prettyprint
 it basically walks your tree and adds spaces and newlines so the tree is
@@ -47,7 +48,13 @@ class OpenMCInput(InputDeck):
     def __write_openmc_cells(self, geometry_tree):
         for cell in self.cell_list:
             write_openmc_cell(cell, geometry_tree)
-            
+
+    # write the collection of OpenMC lattice definitions
+    def __write_openmc_lattices(self, geometry_tree):
+        for lattice in self.lattice_list:
+            write_openmc_lattice(lattice, geometry_tree)
+            pass
+
     # write the collection of Material
     def __write_openmc_materials(self, material_tree):
         for mat in self.material_list:
@@ -66,6 +73,12 @@ class OpenMCInput(InputDeck):
                 fill_universes.add(fill)
 
         for lattice_elem in geometry_tree.findall('lattice'):
+            u = int(lattice_elem.get('id'))
+            universes.add(u)
+            for u in lattice_elem.find('universes').text.split():
+                fill_universes.add(int(u))
+
+        for lattice_elem in geometry_tree.findall('hex_lattice'):
             u = int(lattice_elem.get('id'))
             universes.add(u)
             for u in lattice_elem.find('universes').text.split():
@@ -100,10 +113,13 @@ class OpenMCInput(InputDeck):
 
         self.__write_openmc_surfaces(geometry)
         self.__write_openmc_cells(geometry)
+        self.__write_openmc_lattices(geometry)
         self.__check_unused_universes(geometry)
 
         tree = ET.ElementTree(geometry)
-        indent(geometry)
+        # pretty print if reasonable length; excessivly slow for very large models
+        if len(tree.getroot()) < 150000:
+            indent(geometry)
         tree.write(filename+"/geometry.xml")
 
         # write the materials
